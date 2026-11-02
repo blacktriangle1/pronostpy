@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#071019">
+  <meta name="description" content="Radar de lluvia, satélite, viento, tormentas y sismos en tiempo real, con narración por voz para personas con discapacidad visual.">
+  <title>Radar Vivo · Tiempo real</title>
+  <link rel="icon" href="/icons/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="stylesheet" href="/vendor/leaflet/leaflet.css">
+  <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Saltar al mapa</a>
+
+  <div class="app">
+    <header class="topbar">
+      <div class="brand" aria-label="Radar Vivo">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 40 40" focusable="false">
+            <circle cx="20" cy="20" r="16" fill="none" stroke="currentColor" stroke-width="2" opacity=".35"/>
+            <circle cx="20" cy="20" r="10" fill="none" stroke="currentColor" stroke-width="2" opacity=".55"/>
+            <circle cx="20" cy="20" r="3" fill="currentColor"/>
+            <path d="M20 20 L33 12 A16 16 0 0 1 34 21 Z" fill="currentColor" opacity=".8"/>
+          </svg>
+        </span>
+        <span class="brand-text">
+          <strong>Radar Vivo</strong>
+          <span class="brand-sub" id="topClock">--:--:--</span>
+        </span>
+      </div>
+
+      <form id="searchForm" class="search" role="search" autocomplete="off">
+        <label for="searchInput" class="sr-only">Buscar un lugar</label>
+        <span class="search-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" focusable="false"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M15.5 15.5 21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </span>
+        <input id="searchInput" type="search" name="q" placeholder="Buscar ciudad o lugar…" minlength="2" maxlength="120" aria-controls="searchResults" aria-expanded="false" enterkeyhint="search">
+        <button id="searchClear" class="search-clear" type="button" aria-label="Borrar búsqueda" hidden>
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+        <button class="search-submit" type="submit" aria-label="Buscar">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div id="searchResults" class="search-results" hidden>
+          <p class="search-hint">Escribe al menos 2 letras y presiona Enter.</p>
+        </div>
+      </form>
+
+      <div class="top-actions">
+        <button id="audioToggle" class="icon-btn" type="button" aria-pressed="true" aria-label="Narración por voz activada" title="Narración por voz (L)">
+          <svg class="ico-on" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 9h3l4-4v14l-4-4H4z" fill="currentColor"/><path d="M15 8.5a5 5 0 0 1 0 7M17.8 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          <svg class="ico-off" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 9h3l4-4v14l-4-4H4z" fill="currentColor"/><path d="M16 9l5 5m0-5-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          <span class="btn-label">Voz</span>
+        </button>
+        <button id="layersToggle" class="icon-btn mobile-only" type="button" aria-expanded="false" aria-controls="layersPanel" aria-label="Abrir capas del mapa">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 3 3 8l9 5 9-5-9-5zM3 12l9 5 9-5M3 16l9 5 9-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span class="btn-label">Capas</span>
+        </button>
+        <button id="a11yBtn" class="icon-btn" type="button" aria-haspopup="dialog" aria-label="Opciones de accesibilidad" title="Accesibilidad">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="4.5" r="2" fill="currentColor"/><path d="M4 8h16M12 8v6m0 0-4 7m4-7 4 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          <span class="btn-label">Accesibilidad</span>
+        </button>
+        <button id="helpBtn" class="icon-btn" type="button" aria-haspopup="dialog" aria-label="Ayuda y teclas" title="Ayuda">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M9.5 9a2.5 2.5 0 1 1 3.6 2.3c-.7.4-1.1.9-1.1 1.7v.5M12 17h.01" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          <span class="btn-label">Ayuda</span>
+        </button>
+      </div>
+    </header>
+
+    <main id="main" class="stage">
+      <div id="map" role="region" aria-label="Mapa interactivo de radar, satélite y sismos" aria-describedby="mapHelp"></div>
+      <p id="mapHelp" class="sr-only">Usa las flechas del teclado para mover el mapa y las teclas más y menos para acercar o alejar. Haz clic o toca cualquier lugar para escuchar el pronóstico y ver los detalles. Pulsa L para repetir la narración.</p>
+
+      <div id="offlineBanner" class="offline-banner" role="status" hidden>Sin conexión. Se muestran los últimos datos disponibles.</div>
+
+      <div id="scrim" class="scrim" hidden></div>
+
+      <section id="layersPanel" class="layers-panel" aria-labelledby="layersTitle">
+        <header class="layers-head">
+          <h2 id="layersTitle">Capas</h2>
+          <button id="layersClose" class="icon-btn mobile-only" type="button" aria-label="Cerrar capas">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          </button>
+        </header>
+
+        <fieldset class="base-switch">
+          <legend>Mapa base</legend>
+          <label><input type="radio" name="base" value="dark" checked><span>Oscuro</span></label>
+          <label><input type="radio" name="base" value="streets"><span>Calles</span></label>
+          <label><input type="radio" name="base" value="satellite"><span>Satélite</span></label>
+        </fieldset>
+
+        <div class="layer-row">
+          <label class="switch" for="radarToggle">
+            <input id="radarToggle" type="checkbox" checked>
+            <span class="track" aria-hidden="true"></span>
+            <span class="switch-label">Radar de lluvia</span>
+          </label>
+          <span id="radarStatus" class="hint">conectando…</span>
+        </div>
+
+        <label class="slider-row" for="radarOpacity">
+          <span>Opacidad del radar <output id="radarOpacityValue">70%</output></span>
+          <input id="radarOpacity" type="range" min="10" max="100" value="70">
+        </label>
+
+        <div class="layer-row">
+          <label class="switch" for="satelliteToggle">
+            <input id="satelliteToggle" type="checkbox">
+            <span class="track" aria-hidden="true"></span>
+            <span class="switch-label">Nubes / satélite</span>
+          </label>
+        </div>
+
+        <label class="select-row" for="satelliteSelect">
+          <span>Fuente satelital</span>
+          <select id="satelliteSelect">
+            <option value="auto">Automática según la zona</option>
+          </select>
+        </label>
+
+        <label class="slider-row" for="satelliteOpacity">
+          <span>Opacidad satélite <output id="satelliteOpacityValue">60%</output></span>
+          <input id="satelliteOpacity" type="range" min="10" max="100" value="60">
+        </label>
+
+        <div class="layer-row">
+          <label class="switch" for="quakesToggle">
+            <input id="quakesToggle" type="checkbox" checked>
+            <span class="track" aria-hidden="true"></span>
+            <span class="switch-label">Sismos (USGS)</span>
+          </label>
+        </div>
+
+        <label class="select-row" for="quakesMag">
+          <span>Magnitud mínima</span>
+          <select id="quakesMag">
+            <option value="1">M 1.0 o mayor</option>
+            <option value="2.5" selected>M 2.5 o mayor</option>
+            <option value="4.5">M 4.5 o mayor</option>
+          </select>
+        </label>
+
+        <div class="layer-row">
+          <label class="switch" for="windToggle">
+            <input id="windToggle" type="checkbox">
+            <span class="track" aria-hidden="true"></span>
+            <span class="switch-label">Viento sobre el mapa</span>
+          </label>
+          <span id="windStatus" class="hint">apagado</span>
+        </div>
+
+        <div class="layer-row">
+          <label class="switch" for="sweepToggle">
+            <input id="sweepToggle" type="checkbox" checked>
+            <span class="track" aria-hidden="true"></span>
+            <span class="switch-label">Barrido de radar</span>
+          </label>
+        </div>
+
+        <button id="locateBtn" class="wide-btn" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="3" fill="currentColor"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="12" r="7" fill="none" stroke="currentColor" stroke-width="1.5" opacity=".5"/></svg>
+          Usar mi ubicación
+        </button>
+
+        <p class="panel-note">Datos: RainViewer, Open-Meteo, NASA GIBS y USGS. En el teléfono, la geolocalización requiere HTTPS o localhost.</p>
+      </section>
+
+      <div id="timeline" class="timeline" aria-label="Animación del radar">
+        <button id="playPause" class="play-btn" type="button" aria-label="Pausar animación del radar" aria-pressed="true">
+          <svg class="ico-pause" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M8 5v14M16 5v14" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>
+          <svg class="ico-play" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M8 5l11 7-11 7z" fill="currentColor"/></svg>
+        </button>
+        <div class="timeline-track">
+          <input id="frameSlider" type="range" min="0" max="0" value="0" step="1" aria-label="Fotograma del radar">
+          <div class="timeline-meta">
+            <span id="frameTime">--:--</span>
+            <span id="liveBadge" class="live-badge">RADAR</span>
+            <span id="frameCounter">0/0</span>
+          </div>
+        </div>
+        <button id="radarRefresh" class="icon-btn" type="button" aria-label="Actualizar datos del radar" title="Actualizar radar">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 12a8 8 0 1 1-2.3-5.6M20 4v4h-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+
+      <aside id="infoPanel" class="info-panel" aria-labelledby="placeName">
+        <div class="panel-head">
+          <div class="panel-title">
+            <p class="eyebrow">Punto seleccionado</p>
+            <h2 id="placeName">Toca el mapa</h2>
+            <p id="placeCoords" class="coords">—</p>
+          </div>
+          <button id="panelToggle" class="icon-btn panel-toggle" type="button" aria-expanded="true" aria-controls="panelBody" aria-label="Contraer panel de información">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+
+        <div id="panelBody" class="panel-body">
+          <div class="now-card">
+            <div id="nowIcon" class="now-icon" aria-hidden="true"></div>
+            <div class="now-main">
+              <p class="now-temp"><span id="nowTemp">--</span><span class="deg">°C</span></p>
+              <p id="nowDesc" class="now-desc">Sin datos todavía</p>
+              <p id="nowFeels" class="muted">Sensación --</p>
+            </div>
+            <p id="nowTime" class="now-time">--:--</p>
+          </div>
+
+          <dl class="metric-grid">
+            <div class="metric"><dt>Viento</dt><dd id="mWind">--</dd><span id="mWindArrow" class="wind-arrow" aria-hidden="true"></span></div>
+            <div class="metric"><dt>Rachas</dt><dd id="mGust">--</dd></div>
+            <div class="metric"><dt>Lluvia</dt><dd id="mRain">--</dd></div>
+            <div class="metric"><dt>Prob. lluvia</dt><dd id="mRainProb">--</dd></div>
+            <div class="metric"><dt>Nubes</dt><dd id="mClouds">--</dd></div>
+            <div class="metric"><dt>Humedad</dt><dd id="mHumidity">--</dd></div>
+            <div class="metric"><dt>Presión</dt><dd id="mPressure">--</dd></div>
+            <div class="metric"><dt>Tormenta</dt><dd id="mStorm">--</dd></div>
+          </dl>
+
+          <section class="panel-section" aria-labelledby="hourlyTitle">
+            <h3 id="hourlyTitle">Próximas 12 horas</h3>
+            <div id="hourlyStrip" class="hourly-strip"></div>
+          </section>
+
+          <section class="panel-section" aria-labelledby="quakesTitle">
+            <h3 id="quakesTitle">Sismos cercanos</h3>
+            <p id="quakesSummary" class="muted">Sin datos todavía.</p>
+            <ul id="quakesList" class="quake-list"></ul>
+          </section>
+
+          <div class="panel-actions">
+            <button id="speakBtn" class="primary-btn" type="button">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 9h3l4-4v14l-4-4H4z" fill="currentColor"/><path d="M15 8.5a5 5 0 0 1 0 7M17.8 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+              Escuchar resumen
+            </button>
+            <button id="recenterBtn" class="ghost-btn" type="button">Centrar barrido</button>
+          </div>
+
+          <footer class="panel-footer">
+            <p id="updatedAt">Sin actualizar</p>
+            <p>Información orientativa. No sustituye alertas oficiales.</p>
+          </footer>
+        </div>
+      </aside>
+
+      <details id="legend" class="legend">
+        <summary>Leyenda</summary>
+        <div class="legend-block">
+          <p class="legend-title">Intensidad de lluvia</p>
+          <div class="radar-scale" aria-hidden="true"></div>
+          <div class="legend-labels"><span>Débil</span><span>Intensa</span></div>
+        </div>
+        <div class="legend-block">
+          <p class="legend-title">Sismos</p>
+          <p class="legend-text"><span class="dot m3"></span> M 3 · <span class="dot m4"></span> M 4 · <span class="dot m5"></span> M 5 · <span class="dot m6"></span> M 6+</p>
+        </div>
+        <div class="legend-block">
+          <p class="legend-title">Viento</p>
+          <p class="legend-text">La flecha apunta hacia donde va el viento. El color indica velocidad.</p>
+        </div>
+      </details>
+
+      <div id="toast" class="toast" role="status" aria-live="polite"></div>
+      <div id="loading" class="loading" hidden><span class="spinner" aria-hidden="true"></span><span>Cargando…</span></div>
+      <p id="liveRegion" class="sr-only" role="status" aria-live="polite"></p>
+    </main>
+  </div>
+
+  <dialog id="a11yDialog" class="dialog" aria-labelledby="a11yTitle">
+    <form method="dialog" class="dialog-form">
+      <header class="dialog-head">
+        <h2 id="a11yTitle">Accesibilidad</h2>
+        <button class="icon-btn" value="close" aria-label="Cerrar">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+      </header>
+
+      <label class="switch"><input id="optAudio" type="checkbox" checked><span class="track" aria-hidden="true"></span><span class="switch-label">Narración por voz</span></label>
+      <label class="switch"><input id="optContrast" type="checkbox"><span class="track" aria-hidden="true"></span><span class="switch-label">Alto contraste</span></label>
+      <label class="switch"><input id="optLarge" type="checkbox"><span class="track" aria-hidden="true"></span><span class="switch-label">Texto grande</span></label>
+      <label class="switch"><input id="optMotion" type="checkbox"><span class="track" aria-hidden="true"></span><span class="switch-label">Reducir animaciones</span></label>
+
+      <label class="select-row" for="voiceSelect">
+        <span>Voz</span>
+        <select id="voiceSelect"><option value="auto">Automática (español)</option></select>
+      </label>
+
+      <label class="slider-row" for="rateRange">
+        <span>Velocidad de la voz <output id="rateOut">1.0×</output></span>
+        <input id="rateRange" type="range" min="0.6" max="1.6" step="0.1" value="1">
+      </label>
+
+      <p class="dialog-note">La narración usa la voz española instalada en tu navegador o sistema. Puedes elegir otra voz si está disponible.</p>
+      <button class="primary-btn" value="close">Listo</button>
+    </form>
+  </dialog>
+
+  <dialog id="helpDialog" class="dialog" aria-labelledby="helpTitle">
+    <form method="dialog" class="dialog-form">
+      <header class="dialog-head">
+        <h2 id="helpTitle">Cómo usar Radar Vivo</h2>
+        <button class="icon-btn" value="close" aria-label="Cerrar">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+      </header>
+
+      <ol class="help-list">
+        <li>Toca o haz clic en cualquier punto del mapa para escuchar y ver el pronóstico de ese lugar.</li>
+        <li>Activa las capas de radar, satélite, viento y sismos en el panel de capas.</li>
+        <li>Usa la línea de tiempo para reproducir las últimas dos horas de lluvia.</li>
+        <li>El panel derecho o inferior se puede expandir y contraer con el botón de flecha.</li>
+      </ol>
+
+      <h3>Teclas</h3>
+      <ul class="help-keys">
+        <li><kbd>L</kbd> repetir la narración</li>
+        <li><kbd>R</kbd> radar · <kbd>S</kbd> satélite · <kbd>Q</kbd> sismos · <kbd>W</kbd> viento · <kbd>E</kbd> barrido</li>
+        <li><kbd>Espacio</kbd> reproducir o pausar el radar</li>
+        <li><kbd>+</kbd> / <kbd>−</kbd> acercar o alejar · flechas para mover el mapa</li>
+        <li><kbd>Esc</kbd> cerrar diálogos o el panel de capas</li>
+      </ul>
+
+      <h3>Frecuencia de los datos</h3>
+      <ul class="help-list">
+        <li>Radar de lluvia: imágenes cada 10 minutos, actualización automática cada 2 minutos.</li>
+        <li>Satélite GOES/Himawari: cada 10 minutos; MODIS: imagen diaria global.</li>
+        <li>Viento, lluvia y tormenta: modelo Open-Meteo, refresco cada 5 minutos.</li>
+        <li>Sismos: feed USGS, refresco cada minuto.</li>
+      </ul>
+
+      <p class="dialog-note">Esta aplicación es informativa y no sustituye los avisos de protección civil. En el teléfono, para usar tu ubicación y instalar la PWA, abre la app por HTTPS o desde localhost.</p>
+      <button class="primary-btn" value="close">Entendido</button>
+    </form>
+  </dialog>
+
+  <script src="/vendor/leaflet/leaflet.js"></script>
+  <script type="module" src="/js/app.js"></script>
+</body>
+</html>

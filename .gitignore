@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Logs
+*.log
+
+# Binarios locales pesados
+opencode.exe
+
+# Entorno local / secretos
+.env
+.env.*
+*.key
+*.pem
+
+# Sistema / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
