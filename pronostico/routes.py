@@ -16,11 +16,15 @@ from .services import (
     get_quakes,
     get_radar,
     get_satellite,
+    get_satellite_frames,
+    get_storms,
+    get_tropical_waves,
     get_weather,
     get_wind_grid,
     iso_now,
     reverse_geocode,
     search_places,
+    storms_with_distance,
 )
 
 router = APIRouter(prefix="/api", tags=["radar-vivo"])
@@ -46,6 +50,8 @@ async def config() -> dict[str, Any]:
             "quakes": 60_000,
             "wind": 300_000,
             "satellite": 600_000,
+            "storms": 300_000,
+            "waves": 1_800_000,
         },
         "units": {
             "temperature": "°C",
@@ -58,8 +64,8 @@ async def config() -> dict[str, Any]:
         "limits": {
             "pointRadiusKm": 500,
             "pointDays": 7,
-            "pointMinMagnitude": 2.5,
-            "quakeMinMagnitude": 2.5,
+            "pointMinMagnitude": 1.0,
+            "quakeMinMagnitude": 1.0,
             "quakeDays": 1,
         },
     }
@@ -76,6 +82,14 @@ async def satellite(
     lon: float = Query(DEFAULT_LON, ge=-180, le=180),
 ) -> dict[str, Any]:
     return get_satellite(lat, lon)
+
+
+@router.get("/satellite/frames")
+async def satellite_frames(
+    request: Request,
+    layer: str = Query(..., min_length=1),
+) -> dict[str, Any]:
+    return await get_satellite_frames(_client(request), layer)
 
 
 @router.get("/weather")
@@ -113,7 +127,7 @@ async def quakes(
     maxlat: float = Query(70, ge=-90, le=90),
     minlon: float = Query(-180, ge=-180, le=180),
     maxlon: float = Query(180, ge=-180, le=180),
-    minmag: float = Query(2.5, ge=0, le=9.5),
+    minmag: float = Query(1.0, ge=0, le=9.5),
     days: int = Query(1, ge=1, le=30),
     limit: int = Query(300, ge=1, le=500),
 ) -> dict[str, Any]:
@@ -150,7 +164,7 @@ async def quakes_near(
     lon: float = Query(..., ge=-180, le=180),
     radius: float = Query(500, ge=25, le=2000),
     days: int = Query(7, ge=1, le=30),
-    minmag: float = Query(2.5, ge=0, le=9.5),
+    minmag: float = Query(1.0, ge=0, le=9.5),
 ) -> dict[str, Any]:
     events = await get_near_quakes(
         _client(request),
@@ -169,6 +183,32 @@ async def quakes_near(
         "minMagnitude": minmag,
         "updatedAt": iso_now(),
     }
+
+
+@router.get("/storms")
+async def storms(
+    request: Request,
+    lat: float | None = Query(None, ge=-90, le=90),
+    lon: float | None = Query(None, ge=-180, le=180),
+) -> dict[str, Any]:
+    data = await get_storms(_client(request))
+    items = data.get("storms") or []
+    if lat is not None and lon is not None:
+        items = storms_with_distance(items, lat, lon)
+    return {
+        "storms": items,
+        "count": len(items),
+        "attribution": data.get("attribution"),
+        "updatedAt": data.get("updatedAt"),
+    }
+
+
+@router.get("/tropical-waves")
+async def tropical_waves(
+    request: Request,
+    days: int | None = Query(None, ge=7, le=60),
+) -> dict[str, Any]:
+    return await get_tropical_waves(_client(request), days)
 
 
 @router.get("/wind")
@@ -203,7 +243,7 @@ async def point(
     lon: float = Query(..., ge=-180, le=180),
     radius: float = Query(500, ge=25, le=2000),
     days: int = Query(7, ge=1, le=30),
-    minmag: float = Query(2.5, ge=0, le=9.5),
+    minmag: float = Query(1.0, ge=0, le=9.5),
 ) -> dict[str, Any]:
     return await get_point(
         _client(request),

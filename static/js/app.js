@@ -6,11 +6,12 @@ import { MapView } from "./mapview.js";
 const $ = (id) => document.getElementById(id);
 const SETTINGS_KEY = "radarVivo.ui";
 const FRAME_MS = 680;
+const SAT_FRAME_MS = 900;
 const MOBILE_QUERY = "(max-width: 760px)";
 
 const FALLBACK_CONFIG = {
-  defaultCenter: { lat: 19.4326, lon: -99.1332 },
-  refreshMs: { radar: 120000, point: 60000, quakes: 60000, wind: 300000 },
+  defaultCenter: { lat: 10.4806, lon: -66.9036 },
+  refreshMs: { radar: 120000, point: 60000, quakes: 60000, wind: 300000, storms: 300000, waves: 1800000 },
 };
 
 const state = {
@@ -31,16 +32,26 @@ const state = {
   satelliteEnabled: false,
   satLayers: [],
   satLayerId: "auto",
+  satFrames: [],
+  satFrameIndex: 0,
+  satFramesToken: 0,
+  satActiveId: null,
   quakesEnabled: true,
-  quakeMinMag: 2.5,
+  quakeMinMag: 1,
   quakes: [],
+  stormsEnabled: true,
+  storms: [],
+  stormsUpdatedAt: null,
+  wavesEnabled: true,
+  waves: [],
+  waveMeta: null,
   windEnabled: false,
   windPoints: [],
   selected: null,
   lastPoint: null,
   lastSpeech: "",
   pointToken: 0,
-  flags: { radar: false, quakes: false, wind: false },
+  flags: { radar: false, quakes: false, storms: false, waves: false, wind: false },
   timers: {},
   viewTimer: null,
   toastTimer: null,
@@ -89,6 +100,16 @@ function formatTime(epochSeconds) {
   }
 }
 
+function formatFrameTime(value) {
+  const time = new Date(value).getTime();
+  if (Number.isNaN(time)) return "--:--";
+  return new Date(time).toLocaleTimeString("es-MX", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+}
+
 function formatDateTime(epochSeconds) {
   try {
     return new Date(Number(epochSeconds) * 1000).toLocaleString("es-MX", {
@@ -98,6 +119,19 @@ function formatDateTime(epochSeconds) {
   } catch {
     return "";
   }
+}
+
+function formatIsoDateTime(value) {
+  if (!value) return "sin fecha";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "sin fecha";
+  return date.toLocaleString("es-MX", {
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
 }
 
 function relativeTime(value) {
@@ -348,15 +382,54 @@ async function loadSatellite() {
       select.append(option);
     }
     select.value = state.satLayerId;
-    if (state.satelliteEnabled) applySatellite();
+    if (state.satelliteEnabled) await applySatellite();
   } catch (error) {
     showToast(`Satélite: ${error.message}`, "error");
   }
 }
 
-function applySatellite() {
+async function loadSatelliteFrames(layer) {
+  if (!layer) return;
+  const token = ++state.satFramesToken;
+  try {
+    const data = await api.satelliteFrames(layer.id);
+    if (
+      token !== state.satFramesToken ||
+      !state.satelliteEnabled ||
+      state.satActiveId !== layer.id
+    ) {
+      return;
+    }
+    const frames = Array.isArray(data.frames) ? data.frames : [];
+    if (frames.length > 1) {
+      state.satFrames = frames;
+      state.satFrameIndex = state.settings.reduceMotion
+        ? frames.length - 1
+        : 0;
+      state.map.setSatelliteFrames(layer, frames);
+      state.map.setSatelliteFrame(state.satFrameIndex);
+    } else {
+      state.satFrames = [];
+      state.satFrameIndex = 0;
+      state.map.setSatellite(layer);
+    }
+    updateSatelliteStatus();
+  } catch (error) {
+    if (token !== state.satFramesToken) return;
+    state.satFrames = [];
+    state.satFrameIndex = 0;
+    updateSatelliteStatus(true);
+  }
+}
+
+async function applySatellite({ force = false } = {}) {
   if (!state.satelliteEnabled) {
+    state.satFramesToken += 1;
+    state.satFrames = [];
+    state.satFrameIndex = 0;
+    state.satActiveId = null;
     state.map.clearSatellite();
+    updateSatelliteStatus();
     return;
   }
   if (!state.satLayers.length) return;
@@ -366,7 +439,51 @@ function applySatellite() {
       ? recommendSatellite(normalizeLon(center.lng))
       : state.satLayerId;
   const layer = state.satLayers.find((item) => item.id === id) || null;
+  if (!layer) return;
+  if (!force && state.satActiveId === id && state.map.satelliteLayer) {
+    return;
+  }
+  state.satActiveId = id;
+  state.satFrames = [];
+  state.satFrameIndex = 0;
   state.map.setSatellite(layer);
+  updateSatelliteStatus();
+  loadSatelliteFrames(layer);
+}
+
+function updateSatelliteStatus(error = false) {
+  const status = $("satelliteStatus");
+  if (!status) return;
+  if (!state.satelliteEnabled) {
+    status.textContent = "apagado";
+    return;
+  }
+  if (error) {
+    status.textContent = "sin animación";
+    return;
+  }
+  const frame = state.satFrames[state.satFrameIndex];
+  if (frame && state.satFrames.length > 1) {
+    status.textContent = `${formatFrameTime(frame.time)} · ${
+      state.satFrameIndex + 1
+    }/${state.satFrames.length}`;
+    return;
+  }
+  status.textContent = "imagen actual";
+}
+
+function tickSatelliteFrames() {
+  if (
+    !state.satelliteEnabled ||
+    state.satFrames.length < 2 ||
+    state.settings.reduceMotion ||
+    document.hidden
+  ) {
+    return;
+  }
+  state.satFrameIndex = (state.satFrameIndex + 1) % state.satFrames.length;
+  state.map.setSatelliteFrame(state.satFrameIndex);
+  updateSatelliteStatus();
 }
 
 async function loadQuakes({ silent = false } = {}) {
@@ -381,6 +498,61 @@ async function loadQuakes({ silent = false } = {}) {
     if (!silent) showToast(`Sismos: ${error.message}`, "error");
   } finally {
     state.flags.quakes = false;
+  }
+}
+
+async function loadStorms({ silent = false } = {}) {
+  if (state.flags.storms) return;
+  state.flags.storms = true;
+  try {
+    const selected = state.selected;
+    const data = await api.storms(selected?.lat, selected?.lon);
+    state.storms = data.storms || [];
+    state.stormsUpdatedAt = data.updatedAt || null;
+    if (state.stormsEnabled) state.map.setStorms(state.storms);
+    const count = Number(data.count) || state.storms.length;
+    $("stormsStatus").textContent = count
+      ? `${count} activa${count === 1 ? "" : "s"}`
+      : "sin tormentas";
+    $("stormsToggle").title = `${count} tormentas activas · ${relativeTime(data.updatedAt)}`;
+  } catch (error) {
+    $("stormsStatus").textContent = "sin datos";
+    if (!silent) showToast(`Tormentas: ${error.message}`, "error");
+  } finally {
+    state.flags.storms = false;
+  }
+}
+
+async function loadTropicalWaves({ silent = false } = {}) {
+  if (state.flags.waves) return;
+  state.flags.waves = true;
+  try {
+    const data = await api.tropicalWaves();
+    state.waves = data.waves || [];
+    state.waveMeta = {
+      entryLon: data.entryLon,
+      exitLon: data.exitLon,
+      note: data.note || "",
+      days: data.days,
+      updatedAt: data.updatedAt || null,
+      lastObservation: data.lastObservation || null,
+    };
+    if (state.wavesEnabled) {
+      state.map.setWaves(state.waves, state.waveMeta);
+    }
+    renderWaves(state.waves);
+    const count = Number(data.count) || state.waves.length;
+    $("wavesStatus").textContent = count
+      ? `${count} onda${count === 1 ? "" : "s"}`
+      : "sin ondas";
+    $("wavesToggle").title = `${count} ondas tropicales · ${relativeTime(
+      data.updatedAt
+    )}`;
+  } catch (error) {
+    $("wavesStatus").textContent = "sin datos";
+    if (!silent) showToast(`Ondas tropicales: ${error.message}`, "error");
+  } finally {
+    state.flags.waves = false;
   }
 }
 
@@ -435,7 +607,7 @@ async function selectPoint(lat, lon, options = {}) {
   if (!silent) showLoading("Consultando el punto…");
 
   try {
-    const data = await api.point(lat, lon);
+    const data = await api.point(lat, lon, state.quakeMinMag);
     if (token !== state.pointToken) return;
     state.lastPoint = data;
     state.lastSpeech = data.narration || "";
@@ -505,6 +677,7 @@ function renderPoint(data) {
   }
 
   renderHourly(weather.hourly || []);
+  renderStorms(data.storms || []);
   renderQuakes(data.quakes || [], data.quakeQuery || {});
 
   $("updatedAt").textContent = `Actualizado ${relativeTime(data.updatedAt)} · hora local ${
@@ -551,7 +724,7 @@ function renderQuakes(quakes, query) {
 
   if (!quakes.length) {
     summary.textContent = `Sin sismos de magnitud ${fmt(
-      query.minMagnitude || 2.5,
+      query.minMagnitude || 1,
       1
     )} o mayor en ${radius} km durante los últimos ${days} días.`;
     return;
@@ -612,6 +785,236 @@ function handleQuake(quake) {
     speak: true,
     fly: true,
     zoom: 10,
+    directSpeech: speech,
+    expand: true,
+  });
+}
+
+function renderStorms(storms) {
+  const summary = $("stormsSummary");
+  const list = $("stormsList");
+  const fit = $("stormsFit");
+  list.replaceChildren();
+  if (fit) fit.hidden = !storms.length;
+
+  if (!storms.length) {
+    summary.textContent = "No hay huracanes ni tormentas tropicales activas en este momento.";
+    return;
+  }
+
+  const nearest = storms[0];
+  summary.textContent = `${storms.length} tormenta${
+    storms.length === 1 ? "" : "s"
+  } activa${storms.length === 1 ? "" : "s"}. La más cercana es ${
+    nearest.name || "una tormenta sin nombre"
+  }, ${nearest.category || nearest.classification || "tormenta"}, a ${fmt(
+    nearest.distanceKm,
+    0
+  )} km al ${nearest.direction || "—"}.`;
+
+  for (const storm of storms.slice(0, 4)) {
+    const li = el("li");
+    const button = el("button", "storm-item");
+    button.type = "button";
+    button.setAttribute(
+      "aria-label",
+      `${storm.name || "Tormenta"}, ${
+        storm.category || storm.classification || "tormenta"
+      }, vientos de ${fmt(storm.windKmh, 0)} kilómetros por hora, a ${fmt(
+        storm.distanceKm,
+        0
+      )} kilómetros al ${storm.direction || "cerca"}. Centrar el mapa y escuchar sus datos.`
+    );
+
+    const badge = el(
+      "span",
+      "storm-badge",
+      storm.category || storm.classification || "Tormenta"
+    );
+    badge.dataset.level = (storm.alert || {}).level || "baja";
+
+    const info = el("span", "storm-info");
+    info.append(
+      el("span", "storm-name", `${storm.name || "Tormenta sin nombre"} · ${storm.basinName || "Océano"}`)
+    );
+
+    const movement = storm.movement || {};
+    const details = [
+      `${fmt(storm.windKmh, 0)} km/h`,
+      storm.pressureHpa != null ? `${fmt(storm.pressureHpa, 0)} hPa` : null,
+      `${fmt(storm.distanceKm, 0)} km al ${storm.direction || "—"}`,
+      movement.speedKmh != null
+        ? `hacia el ${movement.direction || "—"} a ${fmt(movement.speedKmh, 0)} km/h`
+        : null,
+      storm.maxWindKmh != null && storm.maxWindKmh !== storm.windKmh
+        ? `máx. ${fmt(storm.maxWindKmh, 0)} km/h`
+        : null,
+      relativeTime(storm.time),
+    ].filter(Boolean);
+
+    info.append(el("span", "storm-meta", details.join(" · ")));
+    button.append(badge, info);
+    button.addEventListener("click", () => handleStorm(storm));
+    li.append(button);
+    list.append(li);
+  }
+}
+
+function buildStormSpeech(storm) {
+  const name = storm.name || "tormenta sin nombre";
+  const classification = storm.category || storm.classification || "tormenta";
+  const wind =
+    storm.windKmh != null
+      ? `, vientos de ${fmt(storm.windKmh, 0)} kilómetros por hora`
+      : "";
+  const pressure =
+    storm.pressureHpa != null
+      ? `, presión central de ${fmt(storm.pressureHpa, 0)} hectopascales`
+      : "";
+  const distance =
+    storm.distanceKm != null
+      ? `, a ${fmt(storm.distanceKm, 0)} kilómetros al ${storm.direction || "cerca"}`
+      : "";
+  const movement = storm.movement || {};
+  const move =
+    movement.speedKmh != null
+      ? `, se mueve hacia el ${movement.direction || "desconocida"} a ${fmt(
+          movement.speedKmh,
+          0
+        )} kilómetros por hora`
+      : "";
+  const forecast =
+    storm.maxWindKmh != null
+      ? ` Viento máximo pronosticado: ${fmt(storm.maxWindKmh, 0)} kilómetros por hora.`
+      : "";
+  return `${name}, ${classification}${wind}${pressure}${distance}${move}.${forecast}`;
+}
+
+function handleStorm(storm) {
+  if (storm.lat === null || storm.lon === null) return;
+  const speech = buildStormSpeech({ ...storm, distanceKm: null, direction: null });
+  showToast(speech, "info", 7000);
+  renderStorms([{ ...storm, distanceKm: 0, direction: "centro" }]);
+  selectPoint(storm.lat, storm.lon, {
+    speak: true,
+    fly: true,
+    zoom: 5,
+    directSpeech: speech,
+    expand: true,
+  });
+}
+
+function renderWaves(waves) {
+  const summary = $("wavesSummary");
+  const list = $("wavesList");
+  const note = $("wavesNote");
+  list.replaceChildren();
+
+  const meta = state.waveMeta || {};
+  note.textContent = meta.note || "";
+  note.hidden = !meta.note;
+
+  if (!waves.length) {
+    summary.textContent = "No se encontraron ondas tropicales en el período analizado.";
+    return;
+  }
+
+  const crossed = waves.filter((wave) => wave.crossedVenezuela).length;
+  const inside = waves.filter((wave) => wave.status === "En Venezuela").length;
+  const parts = [
+    `${waves.length} onda${waves.length === 1 ? "" : "s"} tropical${
+      waves.length === 1 ? "" : "es"
+    } en los últimos ${meta.days || 45} días.`,
+  ];
+  if (crossed) parts.push(`${crossed} cruzó${crossed === 1 ? "" : "aron"} Venezuela.`);
+  if (inside) parts.push(`${inside} está${inside === 1 ? "" : "n"} sobre Venezuela.`);
+  summary.textContent = parts.join(" ");
+
+  for (const wave of waves.slice(0, 5)) {
+    const status = wave.status || "Sin seguimiento reciente";
+    const li = el("li");
+    const button = el("button", "wave-item");
+    button.type = "button";
+    button.setAttribute(
+      "aria-label",
+      `${buildWaveSpeech(wave)} Centrar el mapa y escuchar sus datos.`
+    );
+
+    const badge = el("span", "wave-badge", `Onda ${wave.number ?? ""}`.trim());
+    badge.dataset.status = status;
+
+    const info = el("span", "wave-info");
+    info.append(el("span", "wave-name", `${status} · ${wave.area || "Atlántico"}`));
+
+    const current = wave.current || {};
+    const details = [
+      current.lonWest != null ? `${fmt(current.lonWest, 1)}°O` : null,
+      current.latMin != null && current.latMax != null
+        ? `${fmt(current.latMin, 0)}–${fmt(current.latMax, 0)}°N`
+        : null,
+      current.speedKtMin != null
+        ? `${fmt(current.speedKtMin, 0)}–${fmt(
+            current.speedKtMax ?? current.speedKtMin,
+            0
+          )} kt`
+        : null,
+      wave.entryAt
+        ? `E ${formatIsoDateTime(wave.entryAt)}${wave.entryEstimated ? " est." : ""}`
+        : null,
+      wave.exitAt
+        ? `S ${formatIsoDateTime(wave.exitAt)}${wave.exitEstimated ? " est." : ""}`
+        : null,
+      relativeTime(wave.lastSeen),
+    ].filter(Boolean);
+
+    info.append(el("span", "wave-meta", details.join(" · ")));
+    button.append(badge, info);
+    button.addEventListener("click", () => handleWave(wave));
+    li.append(button);
+    list.append(li);
+  }
+}
+
+function buildWaveSpeech(wave) {
+  const current = wave.current || {};
+  const status = wave.status || "sin seguimiento reciente";
+  const area = current.area || wave.area || "el Atlántico";
+  const position =
+    current.lonWest != null
+      ? `, cerca de ${fmt(current.lonWest, 1)} grados oeste, entre ${fmt(
+          current.latMin,
+          0
+        )} y ${fmt(current.latMax, 0)} grados norte`
+      : "";
+  const speed =
+    current.speedKmhMin != null
+      ? `, desplazándose hacia el oeste a ${fmt(
+          current.speedKmhMin,
+          0
+        )} a ${fmt(current.speedKmhMax ?? current.speedKmhMin, 0)} kilómetros por hora`
+      : "";
+  const entry = wave.entryAt
+    ? ` Entrada ${wave.entryEstimated ? "estimada" : "observada"} a Venezuela: ${formatIsoDateTime(
+        wave.entryAt
+      )}.`
+    : "";
+  const exit = wave.exitAt
+    ? ` Salida ${wave.exitEstimated ? "estimada" : "observada"} de Venezuela: ${formatIsoDateTime(
+        wave.exitAt
+      )}.`
+    : "";
+  return `Onda tropical ${wave.number ?? ""}, ${status}, en ${area}${position}${speed}.${entry}${exit}`;
+}
+
+function handleWave(wave) {
+  const current = wave.current || {};
+  if (current.latMid == null || current.lon == null) return;
+  const speech = buildWaveSpeech(wave);
+  showToast(speech, "info", 8000);
+  selectPoint(current.latMid, current.lon, {
+    speak: true,
+    fly: true,
+    zoom: 4,
     directSpeech: speech,
     expand: true,
   });
@@ -720,9 +1123,9 @@ function wireUi() {
     state.map.setRadarOpacity(value / 100);
   });
 
-  $("satelliteToggle").addEventListener("change", (event) => {
+  $("satelliteToggle").addEventListener("change", async (event) => {
     state.satelliteEnabled = event.target.checked;
-    applySatellite();
+    await applySatellite();
     speakStatus(`Satélite ${state.satelliteEnabled ? "activado" : "desactivado"}.`);
   });
 
@@ -751,6 +1154,44 @@ function wireUi() {
   $("quakesMag").addEventListener("change", (event) => {
     state.quakeMinMag = Number(event.target.value);
     if (state.quakesEnabled) loadQuakes({ silent: false });
+  });
+
+  $("stormsToggle").addEventListener("change", (event) => {
+    state.stormsEnabled = event.target.checked;
+    state.map.setStormsEnabled(state.stormsEnabled);
+    if (state.stormsEnabled) {
+      if (state.storms.length) state.map.setStorms(state.storms);
+      loadStorms({ silent: true });
+    } else {
+      $("stormsStatus").textContent = "apagado";
+    }
+    speakStatus(
+      `Huracanes y tormentas ${state.stormsEnabled ? "activados" : "desactivados"}.`
+    );
+  });
+
+  $("stormsFit").addEventListener("click", () => {
+    if (!state.stormsEnabled) $("stormsToggle").click();
+    if (state.map.focusStorms()) {
+      showToast("Mostrando huracanes y tormentas activas.", "info", 3500);
+      speakStatus("Mostrando huracanes y tormentas activas.");
+    } else {
+      showToast("No hay huracanes ni tormentas activas para mostrar.", "info");
+    }
+  });
+
+  $("wavesToggle").addEventListener("change", (event) => {
+    state.wavesEnabled = event.target.checked;
+    state.map.setWavesEnabled(state.wavesEnabled);
+    if (state.wavesEnabled) {
+      if (state.waves.length) state.map.setWaves(state.waves, state.waveMeta);
+      loadTropicalWaves({ silent: true });
+    } else {
+      $("wavesStatus").textContent = "apagado";
+    }
+    speakStatus(
+      `Ondas tropicales ${state.wavesEnabled ? "activadas" : "desactivadas"}.`
+    );
   });
 
   $("windToggle").addEventListener("change", (event) => {
@@ -943,7 +1384,14 @@ function wireUi() {
     state.settings.reduceMotion = event.target.checked;
     document.documentElement.classList.toggle("reduce-motion", state.settings.reduceMotion);
     state.map.setReducedMotion(state.settings.reduceMotion);
-    if (state.settings.reduceMotion) setPlaying(false);
+    if (state.settings.reduceMotion) {
+      setPlaying(false);
+      if (state.satFrames.length) {
+        state.satFrameIndex = state.satFrames.length - 1;
+        state.map.setSatelliteFrame(state.satFrameIndex);
+        updateSatelliteStatus();
+      }
+    }
     saveUiSettings();
   });
 
@@ -983,6 +1431,12 @@ function wireUi() {
     } else if (key === "q") {
       event.preventDefault();
       $("quakesToggle").click();
+    } else if (key === "h") {
+      event.preventDefault();
+      $("stormsToggle").click();
+    } else if (key === "o") {
+      event.preventDefault();
+      $("wavesToggle").click();
     } else if (key === "w") {
       event.preventDefault();
       $("windToggle").click();
@@ -1001,6 +1455,8 @@ function wireUi() {
     if (document.hidden) return;
     loadRadar({ silent: true });
     if (state.quakesEnabled) loadQuakes({ silent: true });
+    if (state.stormsEnabled) loadStorms({ silent: true });
+    if (state.wavesEnabled) loadTropicalWaves({ silent: true });
     if (state.windEnabled) loadWind({ silent: true });
     refreshPoint();
   });
@@ -1039,6 +1495,8 @@ function updateOnlineStatus() {
   if (!offline) {
     loadRadar({ silent: true });
     if (state.quakesEnabled) loadQuakes({ silent: true });
+    if (state.stormsEnabled) loadStorms({ silent: true });
+    if (state.wavesEnabled) loadTropicalWaves({ silent: true });
     if (state.windEnabled) loadWind({ silent: true });
     refreshPoint();
   }
@@ -1063,6 +1521,7 @@ function startPolling() {
   const refresh = state.config.refreshMs || FALLBACK_CONFIG.refreshMs;
   state.timers.clock = window.setInterval(updateClock, 1000);
   state.timers.frames = window.setInterval(tickFrames, FRAME_MS);
+  state.timers.satFrames = window.setInterval(tickSatelliteFrames, SAT_FRAME_MS);
   state.timers.freshness = window.setInterval(updateFreshness, 10000);
   state.timers.radar = window.setInterval(() => {
     if (!document.hidden) loadRadar({ silent: true });
@@ -1070,6 +1529,12 @@ function startPolling() {
   state.timers.quakes = window.setInterval(() => {
     if (!document.hidden && state.quakesEnabled) loadQuakes({ silent: true });
   }, refresh.quakes || 60000);
+  state.timers.storms = window.setInterval(() => {
+    if (!document.hidden && state.stormsEnabled) loadStorms({ silent: true });
+  }, refresh.storms || 300000);
+  state.timers.waves = window.setInterval(() => {
+    if (!document.hidden && state.wavesEnabled) loadTropicalWaves({ silent: true });
+  }, refresh.waves || 1800000);
   state.timers.wind = window.setInterval(() => {
     if (!document.hidden && state.windEnabled) loadWind({ silent: true });
   }, refresh.wind || 300000);
@@ -1124,6 +1589,8 @@ async function init() {
     reducedMotion: state.settings.reduceMotion,
     onSelect: (lat, lon) => selectPoint(lat, lon, { speak: true, expand: true }),
     onQuake: handleQuake,
+    onStorm: handleStorm,
+    onWave: handleWave,
     onViewChange: handleViewChange,
   });
 
@@ -1137,8 +1604,9 @@ async function init() {
   updateClock();
 
   showLoading("Conectando con el radar…");
-  await Promise.allSettled([loadSatellite(), loadRadar(), loadQuakes()]);
+  await Promise.allSettled([loadSatellite(), loadRadar(), loadQuakes(), loadStorms()]);
   hideLoading();
+  loadTropicalWaves({ silent: true });
 
   const center = state.map.getCenter();
   await selectPoint(center.lat, center.lng, {

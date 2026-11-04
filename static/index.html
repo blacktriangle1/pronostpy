@@ -32,22 +32,25 @@
         </span>
       </div>
 
-      <form id="searchForm" class="search" role="search" autocomplete="off">
-        <label for="searchInput" class="sr-only">Buscar un lugar</label>
-        <span class="search-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" focusable="false"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M15.5 15.5 21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-        </span>
-        <input id="searchInput" type="search" name="q" placeholder="Buscar ciudad o lugar…" minlength="2" maxlength="120" aria-controls="searchResults" aria-expanded="false" enterkeyhint="search">
-        <button id="searchClear" class="search-clear" type="button" aria-label="Borrar búsqueda" hidden>
-          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-        </button>
-        <button class="search-submit" type="submit" aria-label="Buscar">
-          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </button>
-        <div id="searchResults" class="search-results" hidden>
-          <p class="search-hint">Escribe al menos 2 letras y presiona Enter.</p>
-        </div>
-      </form>
+      <div class="search-cluster">
+        <form id="searchForm" class="search" role="search" autocomplete="off">
+          <label for="searchInput" class="sr-only">Buscar un lugar</label>
+          <span class="search-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M15.5 15.5 21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          </span>
+          <input id="searchInput" type="search" name="q" placeholder="Buscar ciudad o lugar…" minlength="2" maxlength="120" aria-controls="searchResults" aria-expanded="false" enterkeyhint="search">
+          <button id="searchClear" class="search-clear" type="button" aria-label="Borrar búsqueda" hidden>
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          </button>
+          <button class="search-submit" type="submit" aria-label="Buscar">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <div id="searchResults" class="search-results" hidden>
+            <p class="search-hint">Escribe al menos 2 letras y presiona Enter.</p>
+          </div>
+        </form>
+        <div class="org-badge" role="note">Agrupación Límite UHF</div>
+      </div>
 
       <div class="top-actions">
         <button id="audioToggle" class="icon-btn" type="button" aria-pressed="true" aria-label="Narración por voz activada" title="Narración por voz (L)">
@@ -113,6 +116,7 @@
             <span class="track" aria-hidden="true"></span>
             <span class="switch-label">Nubes / satélite</span>
           </label>
+          <span id="satelliteStatus" class="hint sat-status">apagado</span>
         </div>
 
         <label class="select-row" for="satelliteSelect">
@@ -138,11 +142,29 @@
         <label class="select-row" for="quakesMag">
           <span>Magnitud mínima</span>
           <select id="quakesMag">
-            <option value="1">M 1.0 o mayor</option>
-            <option value="2.5" selected>M 2.5 o mayor</option>
+            <option value="1" selected>M 1.0 o mayor</option>
+            <option value="2.5">M 2.5 o mayor</option>
             <option value="4.5">M 4.5 o mayor</option>
           </select>
         </label>
+
+        <div class="layer-row">
+          <label class="switch" for="stormsToggle">
+            <input id="stormsToggle" type="checkbox" checked>
+            <span class="track" aria-hidden="true"></span>
+            <span class="switch-label">Huracanes y tormentas</span>
+          </label>
+          <span id="stormsStatus" class="hint">conectando…</span>
+        </div>
+
+        <div class="layer-row">
+          <label class="switch" for="wavesToggle">
+            <input id="wavesToggle" type="checkbox" checked>
+            <span class="track" aria-hidden="true"></span>
+            <span class="switch-label">Ondas tropicales (NHC)</span>
+          </label>
+          <span id="wavesStatus" class="hint">conectando…</span>
+        </div>
 
         <div class="layer-row">
           <label class="switch" for="windToggle">
@@ -166,7 +188,7 @@
           Usar mi ubicación
         </button>
 
-        <p class="panel-note">Datos: RainViewer, Open-Meteo, NASA GIBS y USGS. En el teléfono, la geolocalización requiere HTTPS o localhost.</p>
+        <p class="panel-note">Datos: RainViewer, Open-Meteo, NASA GIBS, USGS y NHC / Esri. En el teléfono, la geolocalización requiere HTTPS o localhost.</p>
       </section>
 
       <div id="timeline" class="timeline" aria-label="Animación del radar">
@@ -226,6 +248,20 @@
             <div id="hourlyStrip" class="hourly-strip"></div>
           </section>
 
+          <section class="panel-section" aria-labelledby="stormsTitle">
+            <h3 id="stormsTitle">Huracanes y tormentas activas</h3>
+            <p id="stormsSummary" class="muted">Sin datos todavía.</p>
+            <button id="stormsFit" class="ghost-btn storm-fit" type="button" hidden>Ver todos en el mapa</button>
+            <ul id="stormsList" class="storm-list"></ul>
+          </section>
+
+          <section class="panel-section" aria-labelledby="wavesTitle">
+            <h3 id="wavesTitle">Ondas tropicales</h3>
+            <p id="wavesSummary" class="muted">Sin datos todavía.</p>
+            <p id="wavesNote" class="hint wave-note" hidden></p>
+            <ul id="wavesList" class="wave-list"></ul>
+          </section>
+
           <section class="panel-section" aria-labelledby="quakesTitle">
             <h3 id="quakesTitle">Sismos cercanos</h3>
             <p id="quakesSummary" class="muted">Sin datos todavía.</p>
@@ -261,6 +297,14 @@
         <div class="legend-block">
           <p class="legend-title">Viento</p>
           <p class="legend-text">La flecha apunta hacia donde va el viento. El color indica velocidad.</p>
+        </div>
+        <div class="legend-block">
+          <p class="legend-title">Huracanes y tormentas</p>
+          <p class="legend-text"><span class="storm-legend-dot"></span> Posición actual · línea continua: pronóstico · línea discontinua: recorrido · amarillo: avisos · sombra: cono de incertidumbre.</p>
+        </div>
+        <div class="legend-block">
+          <p class="legend-title">Ondas tropicales</p>
+          <p class="legend-text"><span class="wave-legend-line"></span> Recorrido observado · <span class="wave-legend-dot"></span> posición actual · E / S: entrada y salida de Venezuela · gris: sin seguimiento reciente.</p>
         </div>
       </details>
 
@@ -310,7 +354,9 @@
 
       <ol class="help-list">
         <li>Toca o haz clic en cualquier punto del mapa para escuchar y ver el pronóstico de ese lugar.</li>
-        <li>Activa las capas de radar, satélite, viento y sismos en el panel de capas.</li>
+        <li>Activa las capas de radar, satélite, viento, sismos y huracanes en el panel de capas.</li>
+        <li>Toca el nombre de una tormenta o su marcador para centrar el mapa, ver su trayectoria y escuchar sus datos.</li>
+        <li>Activa las ondas tropicales para ver su recorrido desde la entrada hasta la salida de Venezuela; toca una onda en el panel para escuchar su resumen.</li>
         <li>Usa la línea de tiempo para reproducir las últimas dos horas de lluvia.</li>
         <li>El panel derecho o inferior se puede expandir y contraer con el botón de flecha.</li>
       </ol>
@@ -318,7 +364,7 @@
       <h3>Teclas</h3>
       <ul class="help-keys">
         <li><kbd>L</kbd> repetir la narración</li>
-        <li><kbd>R</kbd> radar · <kbd>S</kbd> satélite · <kbd>Q</kbd> sismos · <kbd>W</kbd> viento · <kbd>E</kbd> barrido</li>
+        <li><kbd>R</kbd> radar · <kbd>S</kbd> satélite · <kbd>Q</kbd> sismos · <kbd>H</kbd> huracanes · <kbd>O</kbd> ondas · <kbd>W</kbd> viento · <kbd>E</kbd> barrido</li>
         <li><kbd>Espacio</kbd> reproducir o pausar el radar</li>
         <li><kbd>+</kbd> / <kbd>−</kbd> acercar o alejar · flechas para mover el mapa</li>
         <li><kbd>Esc</kbd> cerrar diálogos o el panel de capas</li>
@@ -327,9 +373,11 @@
       <h3>Frecuencia de los datos</h3>
       <ul class="help-list">
         <li>Radar de lluvia: imágenes cada 10 minutos, actualización automática cada 2 minutos.</li>
-        <li>Satélite GOES/Himawari: cada 10 minutos; MODIS: imagen diaria global.</li>
+        <li>Satélite GOES/Himawari: animación de las últimas imágenes; el barrido revela las nubes a su paso. MODIS: imagen diaria global.</li>
         <li>Viento, lluvia y tormenta: modelo Open-Meteo, refresco cada 5 minutos.</li>
         <li>Sismos: feed USGS, refresco cada minuto.</li>
+        <li>Huracanes y tormentas: pronóstico NHC / JTWC vía Esri, refresco cada 5 minutos.</li>
+        <li>Ondas tropicales: discusiones del NHC, recorrido reconstruido de los últimos 45 días, refresco cada 30 minutos.</li>
       </ul>
 
       <p class="dialog-note">Esta aplicación es informativa y no sustituye los avisos de protección civil. En el teléfono, para usar tu ubicación y instalar la PWA, abre la app por HTTPS o desde localhost.</p>

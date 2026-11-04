@@ -70,30 +70,33 @@ export const api = {
   health: () => getJSON("/api/health"),
   radar: () => getJSON("/api/radar"),
   satellite: (lat, lon) => getJSON("/api/satellite", { lat, lon }),
+  satelliteFrames: (layer) => getJSON("/api/satellite/frames", { layer }),
   weather: (lat, lon) => getJSON("/api/weather", { lat, lon }),
   location: (lat, lon) => getJSON("/api/location", { lat, lon }),
-  quakes: (bounds, minmag = 2.5, days = 1) =>
+  quakes: (bounds, minmag = 1, days = 1) =>
     getJSON("/api/quakes", {
       ...boundsParams(bounds),
       minmag,
       days,
       limit: 300,
     }),
-  nearQuakes: (lat, lon, radius = 500, days = 7, minmag = 2.5) =>
+  nearQuakes: (lat, lon, radius = 500, days = 7, minmag = 1) =>
     getJSON("/api/quakes/near", { lat, lon, radius, days, minmag }),
+  storms: (lat, lon) => getJSON("/api/storms", { lat, lon }),
+  tropicalWaves: (days) => getJSON("/api/tropical-waves", { days }),
   wind: (bounds, rows = 4, cols = 5) =>
     getJSON("/api/wind", {
       ...boundsParams(bounds),
       rows,
       cols,
     }),
-  point: (lat, lon) =>
+  point: (lat, lon, minmag = 1) =>
     getJSON("/api/point", {
       lat,
       lon,
       radius: 500,
       days: 7,
-      minmag: 2.5,
+      minmag,
     }),
   search: (query) => getJSON("/api/search", { q: query, limit: 6 }),
 };

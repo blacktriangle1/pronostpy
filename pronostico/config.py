@@ -12,8 +12,8 @@ APP_NAME = "Radar Vivo"
 HOST = os.getenv("RADAR_HOST", "0.0.0.0")
 PORT = int(os.getenv("RADAR_PORT", "8000"))
 
-DEFAULT_LAT = float(os.getenv("RADAR_DEFAULT_LAT", "19.4326"))
-DEFAULT_LON = float(os.getenv("RADAR_DEFAULT_LON", "-99.1332"))
+DEFAULT_LAT = float(os.getenv("RADAR_DEFAULT_LAT", "10.4806"))
+DEFAULT_LON = float(os.getenv("RADAR_DEFAULT_LON", "-66.9036"))
 
 HTTP_TIMEOUT = float(os.getenv("RADAR_HTTP_TIMEOUT", "18"))
 
@@ -25,6 +25,14 @@ USER_AGENT = os.getenv(
 RAINVIEWER_MAPS_URL = "https://api.rainviewer.com/public/weather-maps.json"
 OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast"
 USGS_QUERY_URL = "https://earthquake.usgs.gov/fdsnws/event/1/query"
+ACTIVE_STORMS_URL = (
+    "https://services9.arcgis.com/RHVPKKiFTONKtxq3/arcgis/rest/services/"
+    "Active_Hurricanes_v1/FeatureServer"
+)
+NHC_TWD_ARCHIVE_URL = "https://www.nhc.noaa.gov/archive/text/TWDAT"
+TROPICAL_WAVE_LOOKBACK_DAYS = int(os.getenv("RADAR_TROPICAL_WAVE_DAYS", "45"))
+TROPICAL_WAVE_ENTRY_LON = float(os.getenv("RADAR_TROPICAL_WAVE_ENTRY_LON", "-59.5"))
+TROPICAL_WAVE_EXIT_LON = float(os.getenv("RADAR_TROPICAL_WAVE_EXIT_LON", "-73.5"))
 NOMINATIM_REVERSE_URL = "https://nominatim.openstreetmap.org/reverse"
 NOMINATIM_SEARCH_URL = "https://nominatim.openstreetmap.org/search"
 PHOTON_REVERSE_URL = "https://photon.komoot.io/reverse"
@@ -94,5 +102,10 @@ SOURCES = [
     {"name": "Open-Meteo", "use": "Viento, lluvia, nubosidad, temperatura y CAPE", "url": "https://open-meteo.com/"},
     {"name": "NASA GIBS", "use": "Imagenes satelitales", "url": "https://www.earthdata.nasa.gov/gibs"},
     {"name": "USGS", "use": "Sismos", "url": "https://earthquake.usgs.gov/"},
+    {
+        "name": "NHC / Esri",
+        "use": "Huracanes, tormentas, conos y trayectorias",
+        "url": "https://www.nhc.noaa.gov/",
+    },
     {"name": "OpenStreetMap / Nominatim / Photon", "use": "Mapa y nombres de lugares", "url": "https://www.openstreetmap.org/"},
 ]

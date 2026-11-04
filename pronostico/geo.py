@@ -199,6 +199,7 @@ def build_narration(
     location: dict[str, Any] | None,
     weather: dict[str, Any],
     quakes: list[dict[str, Any]] | None = None,
+    storms: list[dict[str, Any]] | None = None,
 ) -> str:
     """Construye una narración breve en español para síntesis de voz."""
     location = location or {}
@@ -260,7 +261,44 @@ def build_narration(
         )
     else:
         parts.append(
-            "Sin sismos de magnitud 2.5 o mayor en 500 kilómetros durante los últimos 7 días."
+            "Sin sismos de magnitud 1.0 o mayor en 500 kilómetros durante los últimos 7 días."
         )
+
+    active_storms = storms or []
+    if active_storms:
+        nearest = active_storms[0]
+        name = nearest.get("name") or "una tormenta sin nombre"
+        classification = nearest.get("category") or nearest.get("classification") or "tormenta"
+        try:
+            distance = float(nearest.get("distanceKm"))
+        except (TypeError, ValueError):
+            distance = None
+
+        if distance is not None and distance > 3000:
+            parts.append(
+                f"No hay huracanes ni tormentas tropicales en 3,000 kilómetros. "
+                f"La más cercana es {name}, {classification}, a {_number(distance)} kilómetros."
+            )
+        else:
+            wind = nearest.get("windKmh")
+            text = f"Huracán o tormenta más cercana: {name}, {classification}"
+            if wind is not None:
+                text += f", vientos de {_number(wind)} kilómetros por hora"
+            if distance is not None:
+                direction = nearest.get("direction") or "cerca"
+                text += f", a {_number(distance)} kilómetros al {direction}"
+            movement = nearest.get("movement") or {}
+            movement_direction = movement.get("direction") or "desconocida"
+            movement_speed = movement.get("speedKmh")
+            if movement_speed is not None:
+                text += (
+                    f". Se mueve hacia el {movement_direction} a "
+                    f"{_number(movement_speed)} kilómetros por hora"
+                )
+            else:
+                text += f". Se mueve hacia el {movement_direction}"
+            parts.append(text + ".")
+    else:
+        parts.append("No hay huracanes ni tormentas tropicales activas en este momento.")
 
     return " ".join(parts)

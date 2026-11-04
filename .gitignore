@@ -13,6 +13,8 @@ env/
 
 # Binarios locales pesados
 opencode.exe
+tools/
+url-publica.txt
 
 # Entorno local / secretos
 .env

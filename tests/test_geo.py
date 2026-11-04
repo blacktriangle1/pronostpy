@@ -99,6 +99,37 @@ class GeoHelpersTest(unittest.TestCase):
         )
         self.assertIn("Sin sismos", text)
 
+    def test_narration_with_near_storm(self) -> None:
+        text = build_narration(
+            {"display": "Lugar"},
+            {"current": {"temperature": 20}},
+            [],
+            [
+                {
+                    "name": "Murasu",
+                    "classification": "Tormenta ciclónica muy severa",
+                    "windKmh": 139,
+                    "distanceKm": 250,
+                    "direction": "norte",
+                    "movement": {"direction": "noroeste", "speedKmh": 9},
+                }
+            ],
+        )
+        self.assertIn("Huracán o tormenta más cercana: Murasu", text)
+        self.assertIn("vientos de 139 kilómetros por hora", text)
+        self.assertIn("a 250 kilómetros al norte", text)
+        self.assertIn("Se mueve hacia el noroeste a 9 kilómetros por hora", text)
+
+    def test_narration_with_far_storm(self) -> None:
+        text = build_narration(
+            {"display": "Lugar"},
+            {"current": {"temperature": 20}},
+            [],
+            [{"name": "In-fa", "classification": "Tifón", "distanceKm": 12000}],
+        )
+        self.assertIn("No hay huracanes ni tormentas tropicales en 3,000 kilómetros", text)
+        self.assertIn("La más cercana es In-fa, Tifón, a 12000 kilómetros", text)
+
 
 if __name__ == "__main__":
     unittest.main()

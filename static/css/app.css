@@ -156,14 +156,25 @@ a {
   letter-spacing: 0.06em;
 }
 
+.search-cluster {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 780px;
+  margin: 0 auto;
+}
+
 .search {
   position: relative;
   display: flex;
   align-items: center;
   gap: 6px;
   flex: 1 1 auto;
+  min-width: 0;
   max-width: 560px;
-  margin: 0 auto;
+  margin: 0;
   padding: 4px 4px 4px 38px;
   background: rgba(14, 31, 44, 0.85);
   border: 1px solid var(--line);
@@ -412,6 +423,10 @@ a {
   filter: saturate(1.15) contrast(1.05);
 }
 
+.sat-tiles {
+  transition: opacity 0.45s linear;
+}
+
 /* ---------------------------------- Capas ------------------------------------- */
 
 .layers-panel {
@@ -572,6 +587,12 @@ a {
   font-size: 0.68rem;
   text-align: right;
   max-width: 90px;
+}
+
+.sat-status {
+  max-width: none;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 
 .slider-row,
@@ -1114,6 +1135,175 @@ select {
   font-size: 0.66rem;
 }
 
+.storm-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.storm-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  width: 100%;
+  padding: 8px 0;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px dashed var(--line);
+  color: var(--text);
+}
+
+.storm-item:last-child {
+  border-bottom: 0;
+}
+
+.storm-item:hover,
+.storm-item:focus-visible {
+  background: rgba(67, 200, 255, 0.08);
+}
+
+.storm-badge {
+  flex: 0 0 auto;
+  min-width: 62px;
+  max-width: 84px;
+  padding: 4px 6px;
+  text-align: center;
+  border-radius: 7px;
+  background: rgba(127, 211, 255, 0.12);
+  color: var(--accent);
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.storm-badge[data-level="moderada"] {
+  background: rgba(255, 200, 87, 0.16);
+  color: var(--warn);
+}
+
+.storm-badge[data-level="alta"] {
+  background: rgba(255, 93, 122, 0.18);
+  color: var(--danger);
+}
+
+.storm-info {
+  min-width: 0;
+  flex: 1;
+}
+
+.storm-name {
+  display: block;
+  overflow: hidden;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.storm-meta {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 0.64rem;
+  line-height: 1.35;
+}
+
+.storm-fit {
+  width: 100%;
+  min-height: 36px;
+  margin: 4px 0 8px;
+  padding: 7px 12px;
+  font-size: 0.72rem;
+}
+
+.wave-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.wave-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  width: 100%;
+  padding: 8px 0;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px dashed var(--line);
+  color: var(--text);
+}
+
+.wave-item:last-child {
+  border-bottom: 0;
+}
+
+.wave-item:hover,
+.wave-item:focus-visible {
+  background: rgba(67, 200, 255, 0.08);
+}
+
+.wave-badge {
+  flex: 0 0 auto;
+  min-width: 52px;
+  max-width: 74px;
+  padding: 4px 6px;
+  text-align: center;
+  border-radius: 7px;
+  background: rgba(92, 200, 255, 0.12);
+  color: var(--accent);
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.wave-badge[data-status="En Venezuela"] {
+  background: rgba(255, 176, 32, 0.16);
+  color: var(--warn);
+}
+
+.wave-badge[data-status="Salió de Venezuela"] {
+  background: rgba(110, 231, 183, 0.14);
+  color: #6ee7b7;
+}
+
+.wave-badge[data-status="Sin seguimiento reciente"] {
+  background: rgba(154, 167, 184, 0.14);
+  color: var(--muted);
+}
+
+.wave-info {
+  min-width: 0;
+  flex: 1;
+}
+
+.wave-name {
+  display: block;
+  overflow: hidden;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wave-meta {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 0.64rem;
+  line-height: 1.35;
+}
+
+.wave-note {
+  margin-top: 6px;
+}
+
 .panel-actions {
   display: flex;
   gap: 8px;
@@ -1260,6 +1450,26 @@ select {
   backdrop-filter: blur(10px);
 }
 
+.org-badge {
+  flex: 0 0 auto;
+  max-width: 100%;
+  padding: 7px 14px;
+  overflow: hidden;
+  background: rgba(8, 20, 31, 0.82);
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  color: var(--text);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+  pointer-events: none;
+  backdrop-filter: blur(12px);
+}
+
 .toast {
   position: absolute;
   top: 14px;
@@ -1361,7 +1571,27 @@ select {
     rgba(127, 211, 255, 0) 360deg
   );
   filter: drop-shadow(0 0 10px rgba(127, 211, 255, 0.4));
-  animation: sweep-spin 3.8s linear infinite;
+  transform: rotate(var(--sweep-angle, 0deg));
+  transform-origin: 50% 50%;
+}
+
+.sat-reveal .leaflet-sat-pane {
+  -webkit-mask-image: conic-gradient(
+    from calc(var(--sweep-angle, 0deg) + 60deg) at var(--sweep-x, 50%) var(--sweep-y, 50%),
+    rgba(0, 0, 0, 0.25) 0deg,
+    #000 55deg,
+    #000 300deg,
+    rgba(0, 0, 0, 0) 300deg,
+    rgba(0, 0, 0, 0) 360deg
+  );
+  mask-image: conic-gradient(
+    from calc(var(--sweep-angle, 0deg) + 60deg) at var(--sweep-x, 50%) var(--sweep-y, 50%),
+    rgba(0, 0, 0, 0.25) 0deg,
+    #000 55deg,
+    #000 300deg,
+    rgba(0, 0, 0, 0) 300deg,
+    rgba(0, 0, 0, 0) 360deg
+  );
 }
 
 .sweep-glow {
@@ -1422,9 +1652,172 @@ select {
 }
 
 .selection-wrap,
-.quake-wrap {
+.quake-wrap,
+.storm-wrap,
+.wave-wrap {
   background: transparent !important;
   border: 0 !important;
+}
+
+.storm-wrap {
+  overflow: visible !important;
+}
+
+.storm-marker {
+  position: relative;
+  width: 46px;
+  height: 46px;
+  color: var(--storm-color, var(--accent));
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.55));
+  transition: filter 0.15s ease;
+}
+
+.storm-glyph {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(5, 12, 18, 0.86);
+  border: 2px solid var(--storm-color, var(--accent));
+  border-radius: 50%;
+  box-shadow: 0 0 0 3px rgba(5, 12, 18, 0.45);
+}
+
+.storm-glyph svg {
+  width: 28px;
+  height: 28px;
+}
+
+.storm-tag {
+  position: absolute;
+  top: 50%;
+  left: 52px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 4px 8px;
+  background: rgba(5, 12, 18, 0.9);
+  border: 1px solid var(--storm-color, var(--accent));
+  border-radius: 8px;
+  color: var(--text);
+  line-height: 1.15;
+  white-space: nowrap;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.storm-tag strong {
+  font-size: 0.72rem;
+}
+
+.storm-tag em {
+  color: var(--muted);
+  font-size: 0.58rem;
+  font-style: normal;
+}
+
+.storm-wrap:hover .storm-marker,
+.storm-wrap:focus-visible .storm-marker {
+  filter: brightness(1.2) drop-shadow(0 4px 12px rgba(0, 0, 0, 0.6));
+}
+
+.storm-tooltip {
+  font-variant-numeric: tabular-nums;
+}
+
+.storm-legend-dot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  margin-right: 3px;
+  background: var(--danger);
+  border-radius: 50%;
+  vertical-align: middle;
+}
+
+.wave-wrap {
+  overflow: visible !important;
+}
+
+.wave-marker {
+  position: relative;
+  width: 34px;
+  height: 34px;
+  color: var(--wave-color, var(--accent));
+  filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.5));
+  transition: filter 0.15s ease;
+}
+
+.wave-glyph {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(5, 12, 18, 0.86);
+  border: 2px solid var(--wave-color, var(--accent));
+  border-radius: 50%;
+  box-shadow: 0 0 0 3px rgba(5, 12, 18, 0.4);
+}
+
+.wave-glyph svg {
+  width: 20px;
+  height: 20px;
+}
+
+.wave-tag {
+  position: absolute;
+  top: 50%;
+  left: 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 3px 7px;
+  background: rgba(5, 12, 18, 0.9);
+  border: 1px solid var(--wave-color, var(--accent));
+  border-radius: 8px;
+  color: var(--text);
+  line-height: 1.15;
+  white-space: nowrap;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.wave-tag strong {
+  font-size: 0.68rem;
+}
+
+.wave-tag em {
+  color: var(--muted);
+  font-size: 0.56rem;
+  font-style: normal;
+}
+
+.wave-wrap:hover .wave-marker,
+.wave-wrap:focus-visible .wave-marker {
+  filter: brightness(1.2) drop-shadow(0 3px 10px rgba(0, 0, 0, 0.55));
+}
+
+.wave-tooltip {
+  font-variant-numeric: tabular-nums;
+}
+
+.wave-legend-line {
+  display: inline-block;
+  width: 16px;
+  height: 0;
+  margin-right: 4px;
+  border-top: 2px dashed var(--accent);
+  vertical-align: middle;
+}
+
+.wave-legend-dot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  margin-right: 3px;
+  background: var(--warn);
+  border-radius: 50%;
+  vertical-align: middle;
 }
 
 .quake-dot {
@@ -1604,6 +1997,7 @@ html.hc .info-panel,
 html.hc .timeline,
 html.hc .legend,
 html.hc .dialog,
+html.hc .org-badge,
 html.hc .search-results {
   backdrop-filter: none;
   background: #000;
@@ -1717,9 +2111,18 @@ html.reduce-motion *::after {
     gap: 4px;
   }
 
-  .search {
+  .search-cluster {
     order: 3;
     flex: 1 0 100%;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+    max-width: none;
+    margin: 0;
+  }
+
+  .search {
+    flex: 0 0 auto;
     max-width: none;
     margin: 0;
   }
@@ -1807,6 +2210,13 @@ html.reduce-motion *::after {
     z-index: 500;
   }
 
+  .org-badge {
+    align-self: center;
+    padding: 5px 12px;
+    font-size: 0.64rem;
+    letter-spacing: 0.1em;
+  }
+
   .toast {
     top: auto;
     bottom: calc(108px + env(safe-area-inset-bottom));
@@ -1866,6 +2276,11 @@ html.reduce-motion *::after {
   }
 
   .legend {
+    display: none;
+  }
+
+  .storm-tag,
+  .wave-tag {
     display: none;
   }
 }
