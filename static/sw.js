@@ -1,4 +1,4 @@
-const CACHE = "radar-vivo-v9";
+const CACHE = "radar-vivo-v10";
 
 const SHELL = [
   "/",
